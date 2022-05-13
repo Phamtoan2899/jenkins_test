@@ -52,7 +52,7 @@ pipeline {
             steps {
                 withCredentials([usernamePassword(credentialsId: 'phamtoan', usernameVariable: 'DOCKER_HUB_USERNAME', passwordVariable: 'DOCKER_HUB_PASSWORD')]) {
                     ansiblePlaybook(
-                            credentialsId: '16.163.1.168',
+                            credentialsId: 'ins_dev',
                             playbook: 'playbook.yml',
                             inventory: 'hosts',
                             become: 'yes',
@@ -73,7 +73,7 @@ pipeline {
             steps {
                 withCredentials([usernamePassword(credentialsId: 'phamtoan', usernameVariable: 'DOCKER_HUB_USERNAME', passwordVariable: 'DOCKER_HUB_PASSWORD')]) {
                     ansiblePlaybook(
-                            credentialsId: '16.163.1.168',
+                            credentialsId: 'ins_dev',
                             playbook: 'develop/playbook.yml',
                             inventory: 'hosts',
                             become: 'yes',

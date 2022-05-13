@@ -14,7 +14,7 @@ pipeline {
     agent any
     environment {
 //         PRIVATE_KEY            = credentials('privatekey')
-        DOCKER_IMAGE = "Phamtoan/nginx-${GIT_BRANCH.tokenize('/').pop()}"
+        DOCKER_IMAGE = "phamtoan/nginx-${GIT_BRANCH.tokenize('/').pop()}"
         DOCKERHUB_CREDENTIALS = 'phamtoan'
     }
     stages {

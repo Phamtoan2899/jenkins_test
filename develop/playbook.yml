@@ -14,7 +14,7 @@
     - name: Copy file
       copy:
         src: docker-compose.yaml
-        dest: /home/ubuntu/
+        dest: /home/ubuntu
     - name: Restart docker-compose
       shell: |
           docker-compose stop
@@ -22,4 +22,3 @@
           docker-compose pull
           docker-compose up -d
 ...
-  

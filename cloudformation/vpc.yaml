@@ -1,0 +1,451 @@
+Parameters:
+  VpcName:
+    Description: A name that is prefixed to resource names
+    Type: String
+    Default: "Toanpv4_VPC_CFT"
+
+  VpcCIDR:
+    Description: Please enter the IP range (CIDR notation) for this VPC
+    Type: String
+    Default: 10.1.1.0/16
+    
+  PublicSubnetOneCIDR:
+    Description: Please enter the IP range (CIDR notation) for the public subnet in the first Availability Zone
+    Type: String
+    Default: 10.1.4.0/24
+
+  PublicSubnetTwoCIDR:
+    Description: Please enter the IP range (CIDR notation) for the public subnet in the first Availability Zone
+    Type: String
+    Default: 10.1.0.0/24
+
+  PrivateSubnetOneCIDR:
+    Description: Please enter the IP range (CIDR notation) for the private subnet in the first Availability Zone
+    Type: String
+    Default: 10.1.5.0/24
+
+  PrivateSubnetTwoCIDR:
+    Description: Please enter the IP range (CIDR notation) for the private subnet in the first Availability Zone
+    Type: String
+    Default: 10.1.3.0/24
+
+  ServiceName:
+    Type: String
+    Default: toanpv4service
+    Description: A name for the service
+
+  StackName:
+    Type: String
+    Default: Toanpv4_stack_CFT
+    Description: The name of the parent Fargate networking stack that you created. Necessary
+                 to locate and reference resources created by that stack.
+
+  ImageUrl:
+    Type: String
+    Default: 541253215789.dkr.ecr.us-east-2.amazonaws.com/toanpv4_repo_ecr
+    Description: The url of a docker image that contains the application process that
+                 will handle the traffic for this service
+
+  ContainerCpu:
+    Type: Number
+    Default: 1024
+    Description: How much CPU to give the container. 1024 is 1 CPU
+
+  ContainerMemory:
+    Type: Number
+    Default: 3072
+    Description: How much memory in megabytes to give the container
+
+  ContainerPort:
+    Type: Number
+    Default: 80
+    Description: What port number the application inside the docker container is binding to
+
+  DesiredCount:
+    Type: Number
+    Default: 2
+    Description: How many copies of the service task to run
+
+  Path:
+    Type: String
+    Default: "*"
+    Description: A path on the public load balancer that this service
+                 should be connected to. Use * to send all load balancer
+                 traffic to this service.
+  Priority:
+    Type: Number
+    Default: 1
+    Description: The priority for the routing rule added to the load balancer.
+                 This only applies if your have multiple services which have been
+                 assigned to different paths on the load balancer.                 
+
+Resources:
+  VPC:
+    Type: AWS::EC2::VPC
+    Properties:
+      CidrBlock: !Ref VpcCIDR
+      EnableDnsSupport: true
+      EnableDnsHostnames: true
+      Tags:
+        - Key: Name
+          Value: !Ref VpcName
+
+  PublicSubnetOne:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref VPC
+      AvailabilityZone: !Select [ 0, !GetAZs '' ]
+      CidrBlock: !Ref PublicSubnetOneCIDR
+      MapPublicIpOnLaunch: true
+      Tags:
+        - Key: Name
+          Value: !Sub Public Subnet One CFT ${VpcName}
+
+  PublicSubnetTwo:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref VPC
+      AvailabilityZone: !Select [ 1, !GetAZs '' ]
+      CidrBlock: !Ref PublicSubnetTwoCIDR
+      MapPublicIpOnLaunch: true
+      Tags:
+        - Key: Name
+          Value: !Sub Public Subnet Two CFT ${VpcName}
+
+  InternetGateway:
+    Type: AWS::EC2::InternetGateway
+    Properties:
+      Tags:
+        - Key: Name
+          Value: !Sub InternetGW ${VpcName}
+
+  GatewayAttachement:
+    Type: AWS::EC2::VPCGatewayAttachment
+    Properties:
+      VpcId: !Ref VPC
+      InternetGatewayId: !Ref InternetGateway
+
+  PublicRouteTable:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref VPC
+      Tags:
+        - Key: Name
+          Value: !Sub Public RouteTable CFT ${VpcName}                                                                                                                                                                                                                                                                                                                                                                                                                                                                          
+
+  PublicSubnetOneRouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref PublicSubnetOne
+      RouteTableId: !Ref PublicRouteTable
+
+  PublicSubnetTwoRouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref PublicSubnetTwo
+      RouteTableId: !Ref PublicRouteTable
+
+# Setup networking resources for the private subnets. Containers in these subnets have only private IP addresses
+
+  PrivateSubnetOne:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref VPC
+      AvailabilityZone: !Select [ 0, !GetAZs  '' ]
+      CidrBlock: !Ref PrivateSubnetOneCIDR
+      MapPublicIpOnLaunch: false
+      Tags:
+        - Key: Name
+          Value: !Sub Private Subnet One CFT ${VpcName}
+
+  NatGatewayOneAttachment:
+    Type: AWS::EC2::EIP
+    DependsOn: GatewayAttachement
+    Properties:
+        Domain: vpc
+
+  NatGatewayOne:
+    Type: AWS::EC2::NatGateway
+    Properties:
+      AllocationId: !GetAtt NatGatewayOneAttachment.AllocationId
+      SubnetId: !Ref PublicSubnetOne
+      Tags:
+        - Key: Name
+          Value: !Sub NATGW CFT One ${VpcName}
+
+  PrivateRouteTableOne:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref VPC
+      Tags:
+        - Key: Name
+          Value: !Sub Private RouteTable One CFT ${VpcName}
+
+  PrivateRouteTableOneAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      RouteTableId: !Ref PrivateRouteTableOne
+      SubnetId: !Ref PrivateSubnetOne
+
+  PrivateSubnetTwo:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref VPC
+      AvailabilityZone: !Select [ 1, !GetAZs  '' ]
+      CidrBlock: !Ref PrivateSubnetTwoCIDR
+      MapPublicIpOnLaunch: false
+      Tags:
+        - Key: Name
+          Value: !Sub Private Subnet Two CFT ${VpcName}
+
+  NatGatewayTwoAttachment:
+    Type: AWS::EC2::EIP
+    DependsOn: GatewayAttachement
+    Properties:
+        Domain: vpc
+
+  NatGatewayTwo:
+    Type: AWS::EC2::NatGateway
+    Properties:
+      AllocationId: !GetAtt NatGatewayTwoAttachment.AllocationId
+      SubnetId: !Ref PublicSubnetTwo
+      Tags:
+        - Key: Name
+          Value: !Sub NATGW CFT Two ${VpcName}
+
+  PrivateRouteTableTwo:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref VPC
+      Tags:
+        - Key: Name
+          Value: !Sub Private RouteTable Two CFT ${VpcName}
+
+  PrivateRouteTableTwoAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      RouteTableId: !Ref PrivateRouteTableTwo
+      SubnetId: !Ref PrivateSubnetTwo
+
+  PrivateLoadBalancerSG:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Access to the internal load balancer
+      VpcId: !Ref VPC
+
+  PrivateLoadBalancer:
+    Type: AWS::ElasticLoadBalancingV2::LoadBalancer
+    Properties:
+      Scheme: internal
+      Subnets:
+        # This load balancer is put into the private subnet, so that there is no
+        # route for the public to even be able to access the private load balancer.
+        - !Ref PrivateSubnetOne
+        - !Ref PrivateSubnetTwo
+      SecurityGroups:
+        - !Ref PrivateLoadBalancerSG
+
+
+  # ECS Resources
+  ECSCluster:
+    Type: AWS::ECS::Cluster
+    Properties:
+        Tags:
+          - Key: Name
+            Value: !Sub Toanpv4_cluster_CFTtest
+
+  FargateContainerSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Access to the Fargate containers
+      VpcId: !Ref VPC
+
+  # EcsSecurityGroupIngressFromPublicALB:
+  #   Type: AWS::EC2::SecurityGroupIngress
+  #   Properties:
+  #     Description: Ingress from the public ALB
+  #     GroupId: !Ref FargateContainerSecurityGroup
+  #     IpProtocol: -1
+  #     SourceSecurityGroupId: !Ref PublicLoadBalancerSG
+
+  # EcsSecurityGroupIngressFromPrivateALB:
+  #   Type: AWS::EC2::SecurityGroupIngress
+  #   Properties:
+  #     Description: Ingress from the private ALB
+  #     GroupId: !Ref FargateContainerSecurityGroup
+  #     IpProtocol: -1
+  #     SourceSecurityGroupId: !Ref PrivateLoadBalancerSG
+
+  # EcsSecurityGroupIngressFromSelf:
+  #   Type: AWS::EC2::SecurityGroupIngress
+  #   Properties:
+  #     Description: Ingress from other containers in the same security group
+  #     GroupId: !Ref FargateContainerSecurityGroup
+  #     IpProtocol: -1
+  #     SourceSecurityGroupId: !Ref FargateContainerSecurityGroup
+
+  # ECSRole:
+  #   Type: AWS::IAM::Role
+  #   Properties:
+  #     AssumeRolePolicyDocument:
+  #       Statement:
+  #       - Effect: Allow
+  #         Principal:
+  #           Service: [ecs.amazonaws.com]
+  #         Action: ['sts:AssumeRole']
+  #     Path: /
+  #     Policies:
+  #     - PolicyName: ecs-service
+  #       PolicyDocument:
+  #         Statement:
+  #         - Effect: Allow
+  #           Action:
+  #             # Rules which allow ECS to attach network interfaces to instances
+  #             # on your behalf in order for awsvpc networking mode to work right
+  #             - 'ec2:AttachNetworkInterface'
+  #             - 'ec2:CreateNetworkInterface'
+  #             - 'ec2:CreateNetworkInterfacePermission'
+  #             - 'ec2:DeleteNetworkInterface'
+  #             - 'ec2:DeleteNetworkInterfacePermission'
+  #             - 'ec2:Describe*'
+  #             - 'ec2:DetachNetworkInterface'
+
+  #             # Rules which allow ECS to update load balancers on your behalf
+  #             # with the information sabout how to send traffic to your containers
+  #             - 'elasticloadbalancing:DeregisterInstancesFromLoadBalancer'
+  #             - 'elasticloadbalancing:DeregisterTargets'
+  #             - 'elasticloadbalancing:Describe*'
+  #             - 'elasticloadbalancing:RegisterInstancesWithLoadBalancer'
+  #             - 'elasticloadbalancing:RegisterTargets'
+  #           Resource: '*'
+
+  # This is a role which is used by the ECS tasks themselves.
+  ECSTaskExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Statement:
+        - Effect: Allow
+          Principal:
+            Service: [ecs-tasks.amazonaws.com]
+          Action: ['sts:AssumeRole']
+      Path: /
+      Policies:
+        - PolicyName: AmazonECSTaskExecutionRolePolicy
+          PolicyDocument:
+            Statement:
+            - Effect: Allow
+              Action:
+                # Allow the ECS Tasks to download images from ECR
+                - 'ecr:GetAuthorizationToken'
+                - 'ecr:BatchCheckLayerAvailability'
+                - 'ecr:GetDownloadUrlForLayer'
+                - 'ecr:BatchGetImage'
+
+                # Allow the ECS tasks to upload logs to CloudWatch
+                - 'logs:CreateLogStream'
+                - 'logs:PutLogEvents'
+              Resource: '*'
+
+  TaskDefinition:
+    Type: AWS::ECS::TaskDefinition
+    Properties:
+      Family: !Ref ServiceName
+      Cpu: !Ref ContainerCpu
+      Memory: !Ref ContainerMemory
+      NetworkMode: awsvpc
+      RequiresCompatibilities:
+        - FARGATE
+      ExecutionRoleArn: !Ref ECSTaskExecutionRole
+      TaskRoleArn: !Ref ECSTaskExecutionRole
+      ContainerDefinitions:
+        - Name: !Ref ServiceName
+          Cpu: !Ref ContainerCpu
+          Memory: !Ref ContainerMemory
+          Image: !Ref ImageUrl
+          PortMappings:
+            - ContainerPort: !Ref ContainerPort
+
+  Service:
+    Type: AWS::ECS::Service
+    DependsOn: LoadBalancerRule
+    Properties:
+      ServiceName: !Ref ServiceName
+      Cluster: !Ref ECSCluster
+      LaunchType: FARGATE
+      DeploymentConfiguration:
+        MaximumPercent: 200
+        MinimumHealthyPercent: 75
+      DesiredCount: 2
+      NetworkConfiguration:
+        AwsvpcConfiguration:
+          SecurityGroups: 
+            - !Ref FargateContainerSecurityGroup
+          Subnets: 
+            - !Ref PrivateSubnetOne
+            - !Ref PrivateSubnetTwo
+      TaskDefinition: !Ref TaskDefinition
+      LoadBalancers:
+        - ContainerName: !Ref ServiceName
+          ContainerPort: 80
+          TargetGroupArn: !Ref TargetGroup
+
+  TargetGroup:
+    Type: AWS::ElasticLoadBalancingV2::TargetGroup
+    Properties:
+      HealthCheckIntervalSeconds: 6
+      HealthCheckPath: /
+      HealthCheckProtocol: HTTP
+      HealthCheckTimeoutSeconds: 5
+      HealthyThresholdCount: 2
+      TargetType: ip
+      Name: !Ref ServiceName
+      Port: !Ref ContainerPort
+      Protocol: HTTP
+      UnhealthyThresholdCount: 2
+      VpcId: !Ref VPC
+
+  PrivateLoadBalancerListener:
+    Type: AWS::ElasticLoadBalancingV2::Listener
+    DependsOn:
+      - PrivateLoadBalancer
+    Properties:
+      DefaultActions:
+        - TargetGroupArn: !Ref TargetGroup
+          Type: 'forward'
+      LoadBalancerArn: !Ref PrivateLoadBalancer
+      Port: 80
+      Protocol: HTTP
+
+  LoadBalancerRule:
+    Type: AWS::ElasticLoadBalancingV2::ListenerRule
+    Properties:
+      Actions:
+        - TargetGroupArn: !Ref TargetGroup
+          Type: 'forward'
+      Conditions:
+        - Field: path-pattern
+          Values: [!Ref 'Path']
+      ListenerArn: !Ref PrivateLoadBalancerListener
+      Priority: !Ref Priority
+
+Outputs:
+  VPC:
+    Description: VPC ID
+    Value: !Ref VPC
+
+  PublicSubnetOne:
+    Description: A list of the public subnets
+    Value: !Ref PublicSubnetOne
+
+  PublicSubnetTwo:
+    Description: A list of the public subnets
+    Value: !Ref PublicSubnetTwo
+
+  PrivateSubnetOne:
+    Description: A list of the private subnets
+    Value: !Ref PrivateSubnetOne
+
+  PrivateSubnetTwo:
+    Description: A list of the private subnets
+    Value: !Ref PrivateSubnetTwo

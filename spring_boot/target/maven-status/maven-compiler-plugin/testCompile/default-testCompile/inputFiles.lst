@@ -1,0 +1,11 @@
+/home/phamtoan/Documents/devops/Documents/CICD/Labs/jenkins_test/cloudformation/spring-petclinic/src/test/java/org/springframework/samples/petclinic/vet/VetTests.java
+/home/phamtoan/Documents/devops/Documents/CICD/Labs/jenkins_test/cloudformation/spring-petclinic/src/test/java/org/springframework/samples/petclinic/owner/OwnerControllerTests.java
+/home/phamtoan/Documents/devops/Documents/CICD/Labs/jenkins_test/cloudformation/spring-petclinic/src/test/java/org/springframework/samples/petclinic/system/CrashControllerTests.java
+/home/phamtoan/Documents/devops/Documents/CICD/Labs/jenkins_test/cloudformation/spring-petclinic/src/test/java/org/springframework/samples/petclinic/service/EntityUtils.java
+/home/phamtoan/Documents/devops/Documents/CICD/Labs/jenkins_test/cloudformation/spring-petclinic/src/test/java/org/springframework/samples/petclinic/PetClinicIntegrationTests.java
+/home/phamtoan/Documents/devops/Documents/CICD/Labs/jenkins_test/cloudformation/spring-petclinic/src/test/java/org/springframework/samples/petclinic/owner/PetControllerTests.java
+/home/phamtoan/Documents/devops/Documents/CICD/Labs/jenkins_test/cloudformation/spring-petclinic/src/test/java/org/springframework/samples/petclinic/vet/VetControllerTests.java
+/home/phamtoan/Documents/devops/Documents/CICD/Labs/jenkins_test/cloudformation/spring-petclinic/src/test/java/org/springframework/samples/petclinic/owner/PetTypeFormatterTests.java
+/home/phamtoan/Documents/devops/Documents/CICD/Labs/jenkins_test/cloudformation/spring-petclinic/src/test/java/org/springframework/samples/petclinic/model/ValidatorTests.java
+/home/phamtoan/Documents/devops/Documents/CICD/Labs/jenkins_test/cloudformation/spring-petclinic/src/test/java/org/springframework/samples/petclinic/owner/VisitControllerTests.java
+/home/phamtoan/Documents/devops/Documents/CICD/Labs/jenkins_test/cloudformation/spring-petclinic/src/test/java/org/springframework/samples/petclinic/service/ClinicServiceTests.java

@@ -21,3 +21,16 @@ services:
       - POSTGRES_PASSWORD=petclinic
       - POSTGRES_USER=petclinic
       - POSTGRES_DB=petclinic
+      
+  jenkins:
+    image: jenkinsci/jenkins:lts
+    container_name: jenkins-container
+    restart: always
+    ports:
+        - "8080:8080"
+        - '50000:50000'
+    volumes:
+    - '/var/run/docker.sock:/var/run/docker.sock'
+    - '/data/jenkins/jenkins_home:/var/jenkins_home'
+    environment:
+    - "JENKINS_OPTS=--prefix=/jenkins"
